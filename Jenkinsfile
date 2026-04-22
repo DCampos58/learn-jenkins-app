@@ -2,6 +2,13 @@ pipeline {
     agent any
 
     stages {
+        // this is a comment
+        /*
+        line 1
+        line 2
+        posso comentar stages
+        dentro de sh posso comentar linhas com #
+        */
         stage('Build') {
             agent{
                 docker{
