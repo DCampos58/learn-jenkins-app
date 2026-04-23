@@ -9,6 +9,9 @@ pipeline {
         posso comentar stages
         dentro de sh posso comentar linhas com #
         */
+
+        //comentado já que no jenkins tenho o build do projeto e o build demora muito a ser feito
+        /*
         stage('Build') {
             agent{
                 docker{
@@ -27,6 +30,7 @@ pipeline {
                 '''
             }
         }
+        */
 
         stage('Test'){
             agent{
@@ -40,6 +44,23 @@ pipeline {
                 sh  '''
                     test -f build/index.html
                     npm  test
+                '''
+            }
+        }
+
+        stage('E2E'){
+            agent{
+                docker{
+                    image 'mrc.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            steps{
+                sh  '''
+                    npm install -g serve
+                    serve -s build
+                    npx playwright test
                 '''
             }
         }
