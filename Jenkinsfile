@@ -55,10 +55,10 @@ pipeline {
                     reuseNode true
                 }
             }
-
             steps{
                 sh  '''
                     npm install serve
+                    npx playwright install  # Instala browsers compatíveis
                     node_modules/.bin/serve -s build &
                     sleep 10
                     npx playwright test
