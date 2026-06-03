@@ -12,6 +12,7 @@ pipeline {
 
         //comentado já que no jenkins tenho o build do projeto e o build demora muito a ser feito
 
+        /*
         stage('Build') {
             agent{
                 docker{
@@ -30,7 +31,7 @@ pipeline {
                 '''
             }
         }
-
+        */
 
         stage('Test'){
             agent{
@@ -61,7 +62,7 @@ pipeline {
                     npx playwright install  # Instala browsers compatíveis
                     node_modules/.bin/serve -s build &
                     sleep 10
-                    npx playwright test
+                    npx playwright test --reporter=html
                 '''
             }
         }
