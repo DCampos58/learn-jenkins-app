@@ -11,7 +11,7 @@ pipeline {
         */
 
         //comentado já que no jenkins tenho o build do projeto e o build demora muito a ser feito
-        /*
+
         stage('Build') {
             agent{
                 docker{
@@ -30,7 +30,7 @@ pipeline {
                 '''
             }
         }
-        */
+
 
         stage('Test'){
             agent{
