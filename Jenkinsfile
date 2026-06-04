@@ -63,6 +63,23 @@ pipeline {
                             sh  '''
                                 npm install serve
                                 npx playwright install
+
+
+                                # Iniciar servidor em background e verificar se está rodando
+                                node_modules/.bin/serve -s build -l 3000 &
+
+                                # Aguardar servidor ficar disponível
+                                echo "Waiting for server to be ready..."
+                                for i in 1 2 3 4 5 6 7 8 9 10; do
+                                     if curl -s http://localhost:3000 > /dev/null; then
+                                         echo "Server is ready!"
+                                         break
+                                     fi
+                                     echo "Attempt $i: Server not ready yet..."
+                                    sleep 2
+                                done
+
+
                                 node_modules/.bin/serve -s build &
                                 sleep 10
                                 npx playwright test --reporter=html
