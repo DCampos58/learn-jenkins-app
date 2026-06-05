@@ -109,6 +109,14 @@ pipeline {
             }
             steps {
                 sh '''
+                    echo "Current directory: $(pwd)"
+                    echo "Workspace: $WORKSPACE"
+                    ls -la
+
+                    cd $WORKSPACE
+                    ls -la
+
+                    npm init -y
                     npm install netlify-cli
                     node_modules/.bin/netlify --version
                 '''
