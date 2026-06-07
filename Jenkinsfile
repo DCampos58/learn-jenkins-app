@@ -62,46 +62,50 @@ pipeline {
                            }
                         }
                     }
-
-                    stage('E2E'){
-                        agent{
-                            docker{
-                                image 'mcr.microsoft.com/playwright:v1.58.2-noble'
-                                reuseNode true
-                            }
-                        }
-                        steps{
-                            sh  '''
-                                npm install serve
-                                npx playwright install
-
-
-                                # Iniciar servidor em background e verificar se está rodando
-                                node_modules/.bin/serve -s build -l 3000 &
-
-                                # Aguardar servidor ficar disponível
-                                echo "Waiting for server to be ready..."
-                                for i in 1 2 3 4 5 6 7 8 9 10; do
-                                     if curl -s http://localhost:3000 > /dev/null; then
-                                         echo "Server is ready!"
-                                         break
-                                     fi
-                                     echo "Attempt $i: Server not ready yet..."
-                                    sleep 2
-                                done
-
-
-                                node_modules/.bin/serve -s build &
-                                sleep 10
-                                npx playwright test --reporter=html --output=playwright-local
-                            '''
-                        }
-                        post{
-                            always{
-                              publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-local', reportFiles: 'index.html', reportName: 'playwright HTML Local', reportTitles: '', useWrapperFileDirectly: true])
-                            }
+                stage('E2E'){
+                    agent{
+                        docker{
+                            image 'mcr.microsoft.com/playwright:v1.58.2-noble'
+                            reuseNode true
                         }
                     }
+                    steps{
+                        sh  '''
+                            npm install serve
+                            npx playwright install
+
+                            # Iniciar servidor em background (apenas UM servidor)
+                            node_modules/.bin/serve -s build -l 3000 &
+
+                            # Aguardar servidor ficar disponível
+                            echo "Waiting for server to be ready..."
+                            for i in 1 2 3 4 5 6 7 8 9 10; do
+                                if curl -s http://localhost:3000 > /dev/null; then
+                                    echo "Server is ready!"
+                                    break
+                                fi
+                                echo "Attempt $i: Server not ready yet..."
+                                sleep 2
+                            done
+
+                            # Executar testes (sem o segundo serve)
+                            npx playwright test --reporter=html --output=playwright-local
+                        '''
+                    }
+                    post{
+                        always{
+                            publishHTML([allowMissing: true,  // Mudar para true
+                                        alwaysLinkToLastBuild: false,
+                                        icon: '',
+                                        keepAll: false,
+                                        reportDir: 'playwright-local',
+                                        reportFiles: 'index.html',
+                                        reportName: 'playwright HTML Local',
+                                        reportTitles: '',
+                                        useWrapperFileDirectly: true])
+                        }
+                    }
+                }
             }
         }
 
