@@ -93,7 +93,7 @@ pipeline {
 
                                 node_modules/.bin/serve -s build &
                                 sleep 10
-                                npx playwright test --reporter=html
+                                npx playwright test --reporter=html --output=playwright-local
                             '''
                         }
                         post{
@@ -151,7 +151,7 @@ pipeline {
                     # Instalar/atualizar Playwright para a versão compatível
                     npm install @playwright/test@latest --save-dev
                     npx playwright install
-                    npx playwright test --reporter=html
+                    npx playwright test --reporter=html --output=playwright-report
                 '''
             }
             post{
