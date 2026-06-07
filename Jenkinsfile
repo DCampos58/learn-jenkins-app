@@ -98,7 +98,7 @@ pipeline {
                         }
                         post{
                             always{
-                              publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                              publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright local', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
                             }
                         }
                     }
@@ -131,6 +131,30 @@ pipeline {
 
                     node_modules/.bin/netlify deploy --dir=build --prod
                 '''
+            }
+        }
+
+        stage('Prod E2E'){
+            agent{
+                docker{
+                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
+                    reuseNode true
+                }
+            }
+
+            environment{
+                CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
+            }
+
+            steps{
+                sh  '''
+                    npx playwright test --reporter=html
+                '''
+            }
+            post{
+                always{
+                  publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright E2E', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
 
