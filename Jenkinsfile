@@ -148,12 +148,15 @@ pipeline {
 
             steps{
                 sh  '''
+                    # Instalar/atualizar Playwright para a versão compatível
+                    npm install @playwright/test@latest --save-dev
+                    npx playwright install
                     npx playwright test --reporter=html
                 '''
             }
             post{
                 always{
-                  publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
