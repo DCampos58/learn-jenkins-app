@@ -98,7 +98,7 @@ pipeline {
                         }
                         post{
                             always{
-                              publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-local', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                              publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-local', reportFiles: 'index.html', reportName: 'playwright HTML Local', reportTitles: '', useWrapperFileDirectly: true])
                             }
                         }
                     }
@@ -156,7 +156,7 @@ pipeline {
             }
             post{
                 always{
-                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
