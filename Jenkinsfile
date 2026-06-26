@@ -127,13 +127,15 @@ pipeline {
                     ls -la
 
                     npm init -y
-                    npm install netlify-cli@20.1.1
+                    npm install netlify-cli@20.1.1 node-jq
                     node_modules/.bin/netlify --version
                     echo "Deploying to staging. Site Id: $NETLIFY_SITE_ID"
 
                     node_modules/.bin/netlify status
 
-                    node_modules/.bin/netlify deploy --dir=build
+                    node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
+                    DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
+                    echo "Deploy URL: $DEPLOY_URL"
                 '''
             }
         }
