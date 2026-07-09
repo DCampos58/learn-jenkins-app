@@ -135,19 +135,21 @@ pipeline {
 
                 '''
 
-                script{
-                    sh '''
-                        node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
-                        DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
-                        echo $DEPLOY_URL > staging_url.txt
-                        echo "Deploy URL: $DEPLOY_URL"
-                    '''
+                script {
+                    // Executa o deploy e captura a saída diretamente
+                    def deployOutput = sh(
+                        script: 'node_modules/.bin/netlify deploy --dir=build --json',
+                        returnStdout: true
+                    )
 
-                    // Lê o arquivo com a URL
-                    env.STAGING_URL = readFile('staging_url.txt').trim()
+                    // Log para debug
+                    echo "Deploy output: ${deployOutput}"
 
-                    // Limpa arquivos temporários
-                    //sh 'rm -f deploy-output.json staging_url.txt'
+                    // Parseia o JSON diretamente
+                    def deployJson = readJSON text: deployOutput
+                    env.STAGING_URL = deployJson.deploy_url
+
+                    echo "Staging URL: ${env.STAGING_URL}"
                 }
             }
         }
