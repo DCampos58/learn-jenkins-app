@@ -140,6 +140,7 @@ pipeline {
                         node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
                         DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
                         echo $DEPLOY_URL > staging_url.txt
+                        echo "Deploy URL: $DEPLOY_URL"
                     '''
 
                     // Lê o arquivo com a URL
