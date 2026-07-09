@@ -111,8 +111,8 @@ pipeline {
 
 
         stage('Deploy staging') {
-            agent{
-                docker{
+            agent {
+                docker {
                     image 'node:18-alpine'
                     reuseNode true
                 }
@@ -127,16 +127,15 @@ pipeline {
                     ls -la
 
                     npm init -y
-                    npm install netlify-cli@20.1.1 node-jq
+                    npm install netlify-cli@20.1.1
                     node_modules/.bin/netlify --version
                     echo "Deploying to staging. Site Id: $NETLIFY_SITE_ID"
 
                     node_modules/.bin/netlify status
-
                 '''
 
                 script {
-                    // Executa o deploy e captura a saída diretamente
+                    // Executa o deploy e captura o JSON diretamente
                     def deployOutput = sh(
                         script: 'node_modules/.bin/netlify deploy --dir=build --json',
                         returnStdout: true
@@ -145,10 +144,18 @@ pipeline {
                     // Log para debug
                     echo "Deploy output: ${deployOutput}"
 
-                    // Parseia o JSON diretamente
+                    // Parseia o JSON
                     def deployJson = readJSON text: deployOutput
+
+                    // Extrai a URL
                     env.STAGING_URL = deployJson.deploy_url
 
+                    // Também podemos guardar outras informações úteis
+                    env.DEPLOY_ID = deployJson.deploy_id
+                    env.SITE_NAME = deployJson.site_name
+
+                    echo "Deploy ID: ${env.DEPLOY_ID}"
+                    echo "Site Name: ${env.SITE_NAME}"
                     echo "Staging URL: ${env.STAGING_URL}"
                 }
             }
