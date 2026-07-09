@@ -134,19 +134,20 @@ pipeline {
                     node_modules/.bin/netlify status
 
                 '''
-            }
-            script{
-                sh '''
-                    node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
-                    DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
-                    echo $DEPLOY_URL > staging_url.txt
-                '''
 
-                // Lê o arquivo com a URL
-                env.STAGING_URL = readFile('staging_url.txt').trim()
+                script{
+                    sh '''
+                        node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
+                        DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
+                        echo $DEPLOY_URL > staging_url.txt
+                    '''
 
-                // Limpa arquivos temporários
-                sh 'rm -f deploy-output.json staging_url.txt'
+                    // Lê o arquivo com a URL
+                    env.STAGING_URL = readFile('staging_url.txt').trim()
+
+                    // Limpa arquivos temporários
+                    sh 'rm -f deploy-output.json staging_url.txt'
+                }
             }
         }
 
