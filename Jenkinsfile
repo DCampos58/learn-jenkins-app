@@ -133,10 +133,48 @@ pipeline {
 
                     node_modules/.bin/netlify status
 
+                '''
+            }
+            script{
+                sh '''
                     node_modules/.bin/netlify deploy --dir=build --json > deploy-output.json
                     DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' deploy-output.json | cut -d'"' -f4)
-                    echo "Deploy URL: $DEPLOY_URL"
+                    echo $DEPLOY_URL > staging_url.txt
                 '''
+
+                // Lê o arquivo com a URL
+                env.STAGING_URL = readFile('staging_url.txt').trim()
+
+                // Limpa arquivos temporários
+                sh 'rm -f deploy-output.json staging_url.txt'
+            }
+        }
+
+
+        stage('Stage E2E'){
+            agent{
+                docker{
+                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
+                    reuseNode true
+                }
+            }
+
+            environment{
+                CI_ENVIRONMENT_URL = "${env.STAGING_URL}"
+            }
+
+            steps{
+                sh  '''
+                    # Instalar/atualizar Playwright para a versão compatível
+                    npm install @playwright/test@latest --save-dev
+                    npx playwright install
+                    npx playwright test --reporter=html --output=playwright-report
+                '''
+            }
+            post{
+                always{
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
 
