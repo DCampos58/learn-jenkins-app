@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurper
-
 pipeline {
     agent any
 
@@ -137,25 +135,43 @@ pipeline {
                 '''
 
                 script {
-                    // Executa o deploy e captura o JSON
-                    def deployOutput = sh(
-                        script: 'node_modules/.bin/netlify deploy --dir=build --json',
+                    // Executa o deploy e extrai a URL usando apenas shell
+                    def deployUrl = sh(
+                        script: '''
+                            node_modules/.bin/netlify deploy --dir=build --json > /tmp/deploy-output.json
+
+                            # Extrair URL usando grep e cut (nativos do Alpine)
+                            DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' /tmp/deploy-output.json | cut -d'"' -f4)
+
+                            # Se falhar, tentar método alternativo
+                            if [ -z "$DEPLOY_URL" ]; then
+                                DEPLOY_URL=$(grep -o 'https://[^"]*\\.netlify\\.app' /tmp/deploy-output.json | head -1)
+                            fi
+
+                            echo "$DEPLOY_URL"
+
+                            # Limpar arquivo temporário
+                            rm -f /tmp/deploy-output.json
+                        ''',
                         returnStdout: true
-                    )
+                    ).trim()
 
-                    echo "Deploy output: ${deployOutput}"
+                    env.STAGING_URL = deployUrl
+                    env.DEPLOY_ID = sh(
+                        script: '''
+                            node_modules/.bin/netlify deploy --dir=build --json | \
+                            grep -o '"deploy_id":"[^"]*"' | \
+                            cut -d'"' -f4
+                        ''',
+                        returnStdout: true
+                    ).trim()
 
-                    // Usando JsonSlurper (nativo do Groovy)
-                    import groovy.json.JsonSlurper
-                    def jsonSlurper = new JsonSlurper()
-                    def deployJson = jsonSlurper.parseText(deployOutput)
+                    if (!env.STAGING_URL) {
+                        error "❌ STAGING_URL está vazio! Deploy falhou."
+                    }
 
-                    // Extrai a URL
-                    env.STAGING_URL = deployJson.deploy_url
-                    env.DEPLOY_ID = deployJson.deploy_id
-
-                    echo "Deploy ID: ${env.DEPLOY_ID}"
-                    echo "Staging URL: ${env.STAGING_URL}"
+                    echo "✅ Deploy ID: ${env.DEPLOY_ID}"
+                    echo "✅ Staging URL: ${env.STAGING_URL}"
                 }
             }
         }
