@@ -135,27 +135,24 @@ pipeline {
                 '''
 
                 script {
-                    // Executa o deploy e captura o JSON diretamente
+                    // Executa o deploy e captura o JSON
                     def deployOutput = sh(
                         script: 'node_modules/.bin/netlify deploy --dir=build --json',
                         returnStdout: true
                     )
 
-                    // Log para debug
                     echo "Deploy output: ${deployOutput}"
 
-                    // Parseia o JSON
-                    def deployJson = readJSON text: deployOutput
+                    // Usando JsonSlurper (nativo do Groovy)
+                    import groovy.json.JsonSlurper
+                    def jsonSlurper = new JsonSlurper()
+                    def deployJson = jsonSlurper.parseText(deployOutput)
 
                     // Extrai a URL
                     env.STAGING_URL = deployJson.deploy_url
-
-                    // Também podemos guardar outras informações úteis
                     env.DEPLOY_ID = deployJson.deploy_id
-                    env.SITE_NAME = deployJson.site_name
 
                     echo "Deploy ID: ${env.DEPLOY_ID}"
-                    echo "Site Name: ${env.SITE_NAME}"
                     echo "Staging URL: ${env.STAGING_URL}"
                 }
             }
