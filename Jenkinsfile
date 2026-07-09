@@ -147,7 +147,7 @@ pipeline {
                     env.STAGING_URL = readFile('staging_url.txt').trim()
 
                     // Limpa arquivos temporários
-                    sh 'rm -f deploy-output.json staging_url.txt'
+                    //sh 'rm -f deploy-output.json staging_url.txt'
                 }
             }
         }
