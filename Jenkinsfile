@@ -212,15 +212,20 @@ pipeline {
             }
         }
 
-        stage('Deploy prod') {
+        stage('Deploy prod'){
             agent{
                 docker{
-                    image 'node:18-alpine'
+                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
                     reuseNode true
                 }
             }
-            steps {
-                sh '''
+
+            environment{
+                CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
+            }
+
+            steps{
+                sh  '''
                     echo "Current directory: $(pwd)"
                     echo "Workspace: $WORKSPACE"
                     ls -la
@@ -236,24 +241,8 @@ pipeline {
                     node_modules/.bin/netlify status
 
                     node_modules/.bin/netlify deploy --dir=build --prod
-                '''
-            }
-        }
 
-        stage('Prod E2E'){
-            agent{
-                docker{
-                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
-                    reuseNode true
-                }
-            }
 
-            environment{
-                CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
-            }
-
-            steps{
-                sh  '''
                     # Instalar/atualizar Playwright para a versão compatível
                     npm install @playwright/test@latest --save-dev
                     npx playwright install
