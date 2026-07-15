@@ -1,117 +1,117 @@
 pipeline {
     agent any
 
-    environment {
+    environment{
         NETLIFY_SITE_ID = '5c48bf24-88bc-4964-a34b-d6ba5dd7c1a9'
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
-        REACT_APP_VERSION = '1.2.3'
+        REACT_APP_VERSION= '1.2.3'
     }
 
     stages {
-        stage('Tests') {
-            parallel {
-                stage('Unit Test') {
-                    agent {
-                        docker {
-                            image 'node:18-alpine'
-                            reuseNode true
-                        }
-                    }
-                    steps {
-                        sh '''
-                            test -f build/index.html
-                            npm install jest-junit --save-dev
-                            npm test
-                        '''
-                    }
-                    post {
-                        always {
-                            junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
-                        }
-                    }
-                }
+        // this is a comment
+        /*
+        line 1
+        line 2
+        posso comentar stages
+        dentro de sh posso comentar linhas com #
+        */
 
-                stage('E2E Local') {
-                    agent {
-                        docker {
+        //comentado já que no jenkins tenho o build do projeto e o build demora muito a ser feito
+        /*
+        stage('Build') {
+            agent{
+                docker{
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    echo 'Small change'
+                    ls -la
+                    node --version
+                    npm --version
+                    npm ci
+                    npm run build
+                    ls -la
+                '''
+            }
+        }
+        */
+
+
+        stage('Tests'){
+            parallel{
+                    stage('Unit Test'){
+                        agent{
+                            docker{
+                                image 'node:18-alpine'
+                                reuseNode true
+                            }
+                        }
+
+                        steps{
+                            sh  '''
+                                test -f build/index.html
+                                npm install jest-junit --save-dev
+                                npm test
+                            '''
+                        }
+                        post{
+                           always{
+                                junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
+                           }
+                        }
+                    }
+                stage('E2E'){
+                    agent{
+                        docker{
                             image 'mcr.microsoft.com/playwright:v1.58.2-noble'
                             reuseNode true
                         }
                     }
-                    // REMOVIDO: environment vazio
-                    steps {
-                        script {
-                            sh '''
-                                echo "=== Starting E2E Local Tests ==="
+                    steps{
+                        sh  '''
+                            npm install serve
+                            npx playwright install
 
-                                npm install serve
-                                npx playwright install
+                            # Iniciar servidor em background (apenas UM servidor)
+                            node_modules/.bin/serve -s build -l 3000 &
 
-                                if [ ! -d "build" ]; then
-                                    echo "❌ Build directory not found!"
-                                    exit 1
+                            # Aguardar servidor ficar disponível
+                            echo "Waiting for server to be ready..."
+                            for i in 1 2 3 4 5 6 7 8 9 10; do
+                                if curl -s http://localhost:3000 > /dev/null; then
+                                    echo "Server is ready!"
+                                    break
                                 fi
+                                echo "Attempt $i: Server not ready yet..."
+                                sleep 2
+                            done
 
-                                echo "Starting server on port 3000..."
-                                node_modules/.bin/serve -s build -l 3000 > server.log 2>&1 &
-                                SERVER_PID=$!
-                                echo "Server PID: $SERVER_PID"
-
-                                echo "Waiting for server to be ready..."
-                                MAX_RETRIES=15
-                                RETRY_COUNT=0
-                                SERVER_READY=false
-
-                                while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                                    if curl -s -f http://localhost:3000 > /dev/null 2>&1; then
-                                        echo "✅ Server is ready on port 3000!"
-                                        SERVER_READY=true
-                                        break
-                                    fi
-                                    RETRY_COUNT=$((RETRY_COUNT+1))
-                                    echo "Attempt $RETRY_COUNT/$MAX_RETRIES: Server not ready yet..."
-                                    sleep 2
-                                done
-
-                                if [ "$SERVER_READY" = false ]; then
-                                    echo "❌ Server failed to start after $MAX_RETRIES attempts"
-                                    cat server.log || echo "No logs available"
-                                    kill $SERVER_PID 2>/dev/null || true
-                                    exit 1
-                                fi
-
-                                echo "Running Playwright tests..."
-                                npx playwright test --reporter=html --output=playwright-local
-                                TEST_EXIT_CODE=$?
-
-                                echo "Stopping server (PID: $SERVER_PID)..."
-                                kill $SERVER_PID 2>/dev/null || true
-                                pkill -f "serve -s build" || true
-
-                                exit $TEST_EXIT_CODE
-                            '''
-                        }
+                            # Executar testes (sem o segundo serve)
+                            npx playwright test --reporter=html --output=playwright-local
+                        '''
                     }
-                    post {
-                        always {
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: false,
-                                icon: '',
-                                keepAll: false,
-                                reportDir: 'playwright-local',
-                                reportFiles: 'index.html',
-                                reportName: 'E2E Local Tests',
-                                reportTitles: '',
-                                useWrapperFileDirectly: true
-                            ])
+                    post{
+                        always{
+                            publishHTML([allowMissing: true,  // Mudar para true
+                                        alwaysLinkToLastBuild: false,
+                                        icon: '',
+                                        keepAll: false,
+                                        reportDir: 'playwright-local',
+                                        reportFiles: 'index.html',
+                                        reportName: 'playwright HTML Local',
+                                        reportTitles: '',
+                                        useWrapperFileDirectly: true])
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy Staging') {
+
+        stage('Deploy staging') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -119,41 +119,45 @@ pipeline {
                 }
             }
             steps {
+                sh '''
+                    echo "Current directory: $(pwd)"
+                    echo "Workspace: $WORKSPACE"
+                    ls -la
+
+                    cd $WORKSPACE
+                    ls -la
+
+                    npm init -y
+                    npm install netlify-cli@20.1.1
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to staging. Site Id: $NETLIFY_SITE_ID"
+
+                    node_modules/.bin/netlify status
+                '''
+
                 script {
-                    sh '''
-                        echo "Current directory: $(pwd)"
-                        echo "Workspace: $WORKSPACE"
-                        ls -la
-
-                        cd $WORKSPACE
-                        ls -la
-
-                        npm init -y
-                        npm install netlify-cli@20.1.1
-                        node_modules/.bin/netlify --version
-                        echo "Deploying to staging. Site Id: $NETLIFY_SITE_ID"
-
-                        node_modules/.bin/netlify status
-                    '''
-
+                    // Executa o deploy e extrai a URL usando apenas shell
                     def deployUrl = sh(
                         script: '''
                             node_modules/.bin/netlify deploy --dir=build --json > /tmp/deploy-output.json
 
+                            # Extrair URL usando grep e cut (nativos do Alpine)
                             DEPLOY_URL=$(grep -o '"deploy_url":"[^"]*"' /tmp/deploy-output.json | cut -d'"' -f4)
 
+                            # Se falhar, tentar método alternativo
                             if [ -z "$DEPLOY_URL" ]; then
                                 DEPLOY_URL=$(grep -o 'https://[^"]*\\.netlify\\.app' /tmp/deploy-output.json | head -1)
                             fi
 
                             echo "$DEPLOY_URL"
+
+                            # Limpar arquivo temporário
                             rm -f /tmp/deploy-output.json
                         ''',
                         returnStdout: true
                     ).trim()
 
                     env.STAGING_URL = deployUrl
-
                     env.DEPLOY_ID = sh(
                         script: '''
                             node_modules/.bin/netlify deploy --dir=build --json | \
@@ -173,75 +177,56 @@ pipeline {
             }
         }
 
-        stage('E2E Staging') {
-            agent {
-                docker {
+
+        stage('Stage E2E'){
+            agent{
+                docker{
                     image 'mcr.microsoft.com/playwright:v1.58.2-noble'
                     reuseNode true
                 }
             }
-            environment {
+
+            environment{
                 CI_ENVIRONMENT_URL = "${env.STAGING_URL}"
             }
-            steps {
-                script {
-                    sh '''
-                        echo "=== Testing Staging Environment ==="
-                        echo "CI_ENVIRONMENT_URL: ${CI_ENVIRONMENT_URL}"
 
-                        echo "Checking if staging is accessible..."
-                        MAX_RETRIES=10
-                        RETRY_COUNT=0
-                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                            if curl -s -f ${CI_ENVIRONMENT_URL} > /dev/null 2>&1; then
-                                echo "✅ Staging is accessible!"
-                                break
-                            fi
-                            RETRY_COUNT=$((RETRY_COUNT+1))
-                            echo "Attempt $RETRY_COUNT/$MAX_RETRIES: Staging not ready yet..."
-                            sleep 5
-                        done
-
-                        npm install @playwright/test@latest --save-dev
-                        npx playwright install
-                        npx playwright test --reporter=html --output=playwright-staging
-                    '''
-                }
+            steps{
+                sh  '''
+                    # Instalar/atualizar Playwright para a versão compatível
+                    npm install @playwright/test@latest --save-dev
+                    npx playwright install
+                    npx playwright test --reporter=html --output=playwright-report
+                '''
             }
-            post {
-                always {
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: false,
-                        icon: '',
-                        keepAll: false,
-                        reportDir: 'playwright-staging',
-                        reportFiles: 'index.html',
-                        reportName: 'E2E Staging Tests',
-                        reportTitles: '',
-                        useWrapperFileDirectly: true
-                    ])
+            post{
+                always{
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
-
+        /*
         stage('Approval') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    input message: 'Ready to deploy to production?'
+                timeout(time: 1, unit: 'MINUTES') {
+                    input 'Ready to deploy?'
                 }
             }
         }
-
-        stage('Deploy Production') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
+        */
+        stage('Deploy prod'){
+            agent{
+                docker{
+                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
                     reuseNode true
                 }
             }
-            steps {
-                sh '''
+
+            environment{
+                CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
+            }
+
+            steps{
+                sh  '''
                     echo "Current directory: $(pwd)"
                     echo "Workspace: $WORKSPACE"
                     ls -la
@@ -255,73 +240,22 @@ pipeline {
                     echo "Deploying to production. Site Id: $NETLIFY_SITE_ID"
 
                     node_modules/.bin/netlify status
+
                     node_modules/.bin/netlify deploy --dir=build --prod
+
+
+                    # Instalar/atualizar Playwright para a versão compatível
+                    npm install @playwright/test@latest --save-dev
+                    npx playwright install
+                    npx playwright test --reporter=html --output=playwright-report
                 '''
             }
-        }
-
-        stage('E2E Production') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/playwright:v1.58.2-noble'
-                    reuseNode true
-                }
-            }
-            environment {
-                CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
-            }
-            steps {
-                script {
-                    sh '''
-                        echo "=== Testing Production Environment ==="
-                        echo "CI_ENVIRONMENT_URL: ${CI_ENVIRONMENT_URL}"
-
-                        echo "Checking if production is accessible..."
-                        MAX_RETRIES=10
-                        RETRY_COUNT=0
-                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                            if curl -s -f ${CI_ENVIRONMENT_URL} > /dev/null 2>&1; then
-                                echo "✅ Production is accessible!"
-                                break
-                            fi
-                            RETRY_COUNT=$((RETRY_COUNT+1))
-                            echo "Attempt $RETRY_COUNT/$MAX_RETRIES: Production not ready yet..."
-                            sleep 5
-                        done
-
-                        npm install @playwright/test@latest --save-dev
-                        npx playwright install
-                        npx playwright test --reporter=html --output=playwright-production
-                    '''
-                }
-            }
-            post {
-                always {
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: false,
-                        icon: '',
-                        keepAll: false,
-                        reportDir: 'playwright-production',
-                        reportFiles: 'index.html',
-                        reportName: 'E2E Production Tests',
-                        reportTitles: '',
-                        useWrapperFileDirectly: true
-                    ])
+            post{
+                always{
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'playwright HTML E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
-    }
 
-    post {
-        always {
-            echo "Pipeline execution completed!"
-        }
-        success {
-            echo "🎉 Pipeline succeeded! All tests passed!"
-        }
-        failure {
-            echo "❌ Pipeline failed! Check the logs above."
-        }
     }
 }
