@@ -5,7 +5,6 @@ pipeline {
         NETLIFY_SITE_ID = '5c48bf24-88bc-4964-a34b-d6ba5dd7c1a9'
         NETLIFY_AUTH_TOKEN = credentials('netlify-token')
         REACT_APP_VERSION = '1.2.3'
-        // CI_ENVIRONMENT_URL será definido em cada stage
     }
 
     stages {
@@ -39,32 +38,25 @@ pipeline {
                             reuseNode true
                         }
                     }
-                    environment {
-                        // Para testes locais, o playwright.config.js usa 'http://localhost:3000' como fallback
-                        // Não precisa definir CI_ENVIRONMENT_URL aqui
-                    }
+                    // REMOVIDO: environment vazio
                     steps {
                         script {
                             sh '''
                                 echo "=== Starting E2E Local Tests ==="
 
-                                # Instalar dependências
                                 npm install serve
                                 npx playwright install
 
-                                # Verificar se build existe
                                 if [ ! -d "build" ]; then
                                     echo "❌ Build directory not found!"
                                     exit 1
                                 fi
 
-                                # Iniciar servidor em background
                                 echo "Starting server on port 3000..."
                                 node_modules/.bin/serve -s build -l 3000 > server.log 2>&1 &
                                 SERVER_PID=$!
                                 echo "Server PID: $SERVER_PID"
 
-                                # Aguardar servidor
                                 echo "Waiting for server to be ready..."
                                 MAX_RETRIES=15
                                 RETRY_COUNT=0
@@ -83,23 +75,19 @@ pipeline {
 
                                 if [ "$SERVER_READY" = false ]; then
                                     echo "❌ Server failed to start after $MAX_RETRIES attempts"
-                                    echo "Server logs:"
                                     cat server.log || echo "No logs available"
                                     kill $SERVER_PID 2>/dev/null || true
                                     exit 1
                                 fi
 
-                                # Executar testes - usa baseURL do playwright.config.js (localhost:3000)
                                 echo "Running Playwright tests..."
                                 npx playwright test --reporter=html --output=playwright-local
                                 TEST_EXIT_CODE=$?
 
-                                # Matar servidor
                                 echo "Stopping server (PID: $SERVER_PID)..."
                                 kill $SERVER_PID 2>/dev/null || true
                                 pkill -f "serve -s build" || true
 
-                                echo "Test exit code: $TEST_EXIT_CODE"
                                 exit $TEST_EXIT_CODE
                             '''
                         }
@@ -148,7 +136,6 @@ pipeline {
                         node_modules/.bin/netlify status
                     '''
 
-                    // Extrai URL do deploy
                     def deployUrl = sh(
                         script: '''
                             node_modules/.bin/netlify deploy --dir=build --json > /tmp/deploy-output.json
@@ -194,7 +181,6 @@ pipeline {
                 }
             }
             environment {
-                // Isso é usado pelo playwright.config.js como baseURL
                 CI_ENVIRONMENT_URL = "${env.STAGING_URL}"
             }
             steps {
@@ -203,7 +189,6 @@ pipeline {
                         echo "=== Testing Staging Environment ==="
                         echo "CI_ENVIRONMENT_URL: ${CI_ENVIRONMENT_URL}"
 
-                        # Verificar se staging está acessível
                         echo "Checking if staging is accessible..."
                         MAX_RETRIES=10
                         RETRY_COUNT=0
@@ -217,11 +202,8 @@ pipeline {
                             sleep 5
                         done
 
-                        # Instalar Playwright
                         npm install @playwright/test@latest --save-dev
                         npx playwright install
-
-                        # Executar testes - usa CI_ENVIRONMENT_URL como baseURL
                         npx playwright test --reporter=html --output=playwright-staging
                     '''
                 }
@@ -286,7 +268,6 @@ pipeline {
                 }
             }
             environment {
-                // URL fixa de produção
                 CI_ENVIRONMENT_URL = 'https://genuine-malasada-895bd3.netlify.app'
             }
             steps {
@@ -295,7 +276,6 @@ pipeline {
                         echo "=== Testing Production Environment ==="
                         echo "CI_ENVIRONMENT_URL: ${CI_ENVIRONMENT_URL}"
 
-                        # Verificar se produção está acessível
                         echo "Checking if production is accessible..."
                         MAX_RETRIES=10
                         RETRY_COUNT=0
@@ -309,11 +289,8 @@ pipeline {
                             sleep 5
                         done
 
-                        # Instalar Playwright
                         npm install @playwright/test@latest --save-dev
                         npx playwright install
-
-                        # Executar testes - usa CI_ENVIRONMENT_URL como baseURL
                         npx playwright test --reporter=html --output=playwright-production
                     '''
                 }
